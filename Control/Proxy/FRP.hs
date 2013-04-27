@@ -1,7 +1,8 @@
 {-# LANGUAGE PolymorphicComponents #-}
 
 module Control.Proxy.FRP (
-    ) where
+   Event(..)
+   ) where
 
 import Control.Applicative
 import Control.Concurrent.Async
