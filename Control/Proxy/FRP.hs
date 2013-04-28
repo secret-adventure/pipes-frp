@@ -17,19 +17,17 @@ instance Functor Event where
     fmap f (Event p) = Event (p >-> mapD f)
 
 instance Applicative Event where
-    pure a = Event $ \() -> respond a
-
-    (Event fp) <*> (Event xp)
-        = Event $ \() -> runIdentityP $ do
-            (input, output) <- lift $ spawn Unbounded
-            lift $ do
-                a1 <- async $ runProxy $
-                    fp >-> mapD Left  >-> sendD input
-                a2 <- async $ runProxy $
-                    xp >-> mapD Right >-> sendD input
-                link2 a1 a2
-                link a1
-            (recvS output >-> handler) ()
+    pure a    = Event $ \() -> respond a
+    fe <*> xe = Event $ \() -> runIdentityP $ do
+        (input, output) <- lift $ spawn Unbounded
+        lift $ do
+            a1 <- async $ runProxy $
+                runEvent fe >-> mapD Left  >-> sendD input
+            a2 <- async $ runProxy $
+                runEvent xe >-> mapD Right >-> sendD input
+            link2 a1 a2
+            link a1
+        (recvS output >-> handler) ()
       where
         handler () = evalStateP (Nothing, Nothing) $ forever $ do
             e <- request ()
