@@ -18,9 +18,11 @@ Source-Repository head
 
 Library
     Build-Depends:
-        base              >= 4     && < 5  ,
-        async             >= 2.0.0 && < 2.1,
-        pipes             >= 3.2.0 && < 3.3,
-        pipes-concurrency >= 1.0.0 && < 1.1
+        base              >= 4       && < 5  ,
+        async             >= 2.0.0   && < 2.1,
+        pipes             >= 3.2.0   && < 3.3,
+        pipes-concurrency >= 1.0.0   && < 1.1,
+        stm               >= 2.4.0   && < 2.5,
+        transformers      >= 0.2.0.0 && < 0.4
     Exposed-Modules: Control.Proxy.FRP
     GHC-Options: -O2

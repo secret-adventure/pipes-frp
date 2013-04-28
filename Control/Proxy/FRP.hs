@@ -1,14 +1,18 @@
 {-# LANGUAGE PolymorphicComponents #-}
 
 module Control.Proxy.FRP (
-   Event(..)
+   Event(..),
+   Behavior(..),
+   behave
    ) where
 
 import Control.Applicative
 import Control.Concurrent.Async
+import Control.Concurrent.STM
 import Control.Proxy
 import Control.Proxy.Concurrent
 import Control.Proxy.Trans.State
+import Data.Functor.Compose
 
 newtype Event a = Event
     { runEvent :: forall p . (Proxy p) => () -> Producer p a IO () }
@@ -56,3 +60,23 @@ instance Alternative Event where
             link2 a1 a2
             link  a1
         recvS output ()
+
+newtype Behavior a = Behavior { runBehavior :: IO (STM a) }
+
+instance Functor Behavior where
+    fmap f = Behavior . getCompose . fmap f . Compose . runBehavior
+
+instance Applicative Behavior where
+    pure = Behavior . getCompose . pure
+    fb <*> xb = Behavior . getCompose $
+        Compose (runBehavior fb) <*> Compose (runBehavior xb)
+
+behave :: a -> Event a -> Behavior a
+behave start e = Behavior $ do
+    tvar <- newTVarIO start
+    let toTVar () = runIdentityP $ forever $ do
+            x <- request ()
+            lift $ atomically $ writeTVar tvar x
+    a <- async $ runProxy $ runEvent e >-> toTVar
+    link a
+    return (readTVar tvar)
