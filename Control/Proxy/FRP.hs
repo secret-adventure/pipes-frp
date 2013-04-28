@@ -11,10 +11,7 @@ import Control.Proxy.Concurrent
 import Control.Proxy.Trans.State
 
 data Event a = Event
-    { unEvent :: forall p . (Proxy p) => () -> Producer p a IO () }
-
-runEvent :: (Proxy p) => Event a -> () -> Producer p a IO ()
-runEvent e = unEvent e
+    { runEvent :: forall p . (Proxy p) => () -> Producer p a IO () }
 
 instance Functor Event where
     fmap f (Event p) = Event (p >-> mapD f)
@@ -56,8 +53,8 @@ instance Alternative Event where
     e1 <|> e2 = Event $ \() -> runIdentityP $ do
         (input, output) <- lift $ spawn Unbounded
         lift $ do
-            a1 <- async $ runProxy $ unEvent e1 >-> sendD input
-            a2 <- async $ runProxy $ unEvent e2 >-> sendD input
+            a1 <- async $ runProxy $ runEvent e1 >-> sendD input
+            a2 <- async $ runProxy $ runEvent e2 >-> sendD input
             link2 a1 a2
             link  a1
         recvS output ()
