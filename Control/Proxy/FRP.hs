@@ -10,7 +10,7 @@ import Control.Proxy
 import Control.Proxy.Concurrent
 import Control.Proxy.Trans.State
 
-data Event a = Event
+newtype Event a = Event
     { runEvent :: forall p . (Proxy p) => () -> Producer p a IO () }
 
 instance Functor Event where
