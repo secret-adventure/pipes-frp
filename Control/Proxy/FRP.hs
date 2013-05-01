@@ -67,8 +67,9 @@ instance Alternative Event where
             link  a1
         recvS output ()
 
--- TODO: Should this be called something like filterE? We could
+-- TODO: Should this be called something like filterE? We could 
 -- also just expect people to import this library qualified.
+-- JF.  I vote for qualified approach
 -- | Supresses events that do not match the given predicate.
 filter :: (a -> Bool) -> Event a -> Event a
 filter predicate (Event producer) = Event $ producer >-> filterD predicate
