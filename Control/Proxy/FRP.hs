@@ -3,16 +3,22 @@
 module Control.Proxy.FRP (
    Event(..),
    Behavior(..),
-   behave
+   behave,
+   filter,
+   mapMaybe
    ) where
 
-import Control.Applicative
-import Control.Concurrent.Async
-import Control.Concurrent.STM
-import Control.Proxy
-import Control.Proxy.Concurrent
-import Control.Proxy.Trans.State
-import Data.Functor.Compose
+import           Prelude                   hiding (filter)
+
+import           Control.Applicative
+import           Control.Concurrent.Async
+import           Control.Concurrent.STM
+import           Control.Proxy
+import           Control.Proxy.Concurrent
+import           Control.Proxy.Trans.State
+
+import           Data.Functor.Compose
+import           Data.Maybe                (fromJust, isJust)
 
 newtype Event a = Event
     { runEvent :: forall p . (Proxy p) => () -> Producer p a IO () }
@@ -60,6 +66,16 @@ instance Alternative Event where
             link2 a1 a2
             link  a1
         recvS output ()
+
+-- TODO: Should this be called something like filterE? We could
+-- also just expect people to import this library qualified.
+-- | Supresses events that do not match the given predicate.
+filter :: (a -> Bool) -> Event a -> Event a
+filter predicate (Event producer) = Event $ producer >-> filterD predicate
+
+-- | Map an event, throwing out any values mapped to Nothing.
+mapMaybe :: (a -> Maybe b) -> Event a -> Event b
+mapMaybe fn = fmap fromJust . filter isJust . fmap fn
 
 newtype Behavior a = Behavior { runBehavior :: IO (STM a) }
 
