@@ -6,7 +6,8 @@ module Control.Proxy.FRP (
    behave,
    filter,
    mapMaybe,
-   runIO
+   runIO,
+   fromIO
    ) where
 
 import           Prelude                   hiding (filter)
@@ -73,6 +74,10 @@ instance Alternative Event where
 -- | Runs each IO action from the event.
 runIO :: (Event (IO ())) -> IO ()
 runIO (Event proxy) = runProxy $ proxy >-> \ () -> request () >>= lift
+
+-- | Create a stream of events by repeating a given IO a action.
+fromIO :: IO a -> Event a
+fromIO action = Event $ \ () -> runIdentityP . forever $ lift action >>= respond
 
 -- TODO: Should this be called something like filterE? We could 
 -- also just expect people to import this library qualified.
