@@ -5,7 +5,8 @@ module Control.Proxy.FRP (
    Behavior(..),
    behave,
    filter,
-   mapMaybe
+   mapMaybe,
+   runIO
    ) where
 
 import           Prelude                   hiding (filter)
@@ -66,6 +67,12 @@ instance Alternative Event where
             link2 a1 a2
             link  a1
         recvS output ()
+
+-- TODO: Does this function make any sense to include? I honestly
+--       don't know.
+-- | Runs each IO action from the event.
+runIO :: (Event (IO ())) -> IO ()
+runIO (Event proxy) = runProxy $ proxy >-> \ () -> request () >>= lift
 
 -- TODO: Should this be called something like filterE? We could 
 -- also just expect people to import this library qualified.
