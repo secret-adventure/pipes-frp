@@ -82,7 +82,7 @@ instance Alternative Event where
 
 -- | Runs each IO action from the event.
 runIO :: (Event (IO ())) -> IO ()
-runIO (Event proxy) = runProxy $ proxy >-> \ () -> request () >>= lift
+runIO (Event proxy) = runProxy $ proxy >-> foreverK (\ () -> request () >>= lift)
 
 -- | Create a stream of events by repeating a given IO a action.
 fromIO :: IO a -> Event a
