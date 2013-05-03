@@ -4,6 +4,8 @@ module Control.Proxy.FRP (
    Event(..),
    Behavior(..),
    behave,
+   behaveIO,
+   extractIO,
    filter,
    mapMaybe,
    runIO,
@@ -69,8 +71,15 @@ instance Alternative Event where
             link  a1
         recvS output ()
 
--- TODO: Does this function make any sense to include? I honestly
---       don't know.
+-- The following ≈3 functions exist so that I can reasonably create
+-- event streams without needing to know anything about their Pipes
+-- implementation.
+--
+-- There is probably a better way to accomplish the same goal though.
+-- The only nice thing about these functions is that they do not
+-- really depend on IO—they should work for *any* monad. (Right now
+-- the dependency on IO is entirely thanks to Event.)
+
 -- | Runs each IO action from the event.
 runIO :: (Event (IO ())) -> IO ()
 runIO (Event proxy) = runProxy $ proxy >-> \ () -> request () >>= lift
@@ -78,6 +87,14 @@ runIO (Event proxy) = runProxy $ proxy >-> \ () -> request () >>= lift
 -- | Create a stream of events by repeating a given IO a action.
 fromIO :: IO a -> Event a
 fromIO action = Event $ \ () -> runIdentityP . forever $ lift action >>= respond
+
+-- TODO: This function feels particularly hacky.
+-- I suppose it makes sense because Event has an implicit IO inside of
+-- it, but still...
+extractIO :: IO (Event a) -> Event a
+extractIO action = Event $ \ () -> runIdentityP $ do
+  Event proxy <- lift action
+  proxy ()
 
 -- TODO: Should this be called something like filterE? We could 
 -- also just expect people to import this library qualified.
@@ -100,8 +117,10 @@ instance Applicative Behavior where
     fb <*> xb = Behavior . getCompose $
         Compose (runBehavior fb) <*> Compose (runBehavior xb)
 
-behave :: a -> Event a -> Behavior a
-behave start e = Behavior $ do
+-- | Creates a behavior using an IO action as a seed.
+behaveIO :: IO a -> Event a -> Behavior a
+behaveIO startAction e = Behavior $ do
+    start <- startAction
     tvar <- newTVarIO start
     let toTVar () = runIdentityP $ forever $ do
             x <- request ()
@@ -109,3 +128,7 @@ behave start e = Behavior $ do
     a <- async $ runProxy $ runEvent e >-> toTVar
     link a
     return (readTVar tvar)
+
+-- | Creates a behavior using the given value as a seed.
+behave :: a -> Event a -> Behavior a
+behave = behaveIO . return 
