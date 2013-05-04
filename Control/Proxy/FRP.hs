@@ -80,7 +80,9 @@ instance Alternative Event where
 -- really depend on IO—they should work for *any* monad. (Right now
 -- the dependency on IO is entirely thanks to Event.)
 
--- | Runs each IO action from the event.
+-- XXX: This does not work properly when called more than once! Just
+ -- naïvely running it with multiple threads doesn't help either.  |
+-- Runs each IO action from the event.
 runIO :: (Event (IO ())) -> IO ()
 runIO (Event proxy) = runProxy $ proxy >-> foreverK (\ () -> request () >>= lift)
 
